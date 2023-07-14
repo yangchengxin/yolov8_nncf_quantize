@@ -62,4 +62,7 @@ def train(cfg=DEFAULT_CFG, use_python=False):
 
 
 if __name__ == '__main__':
+    import os
+    os.environ["WANDB_API_KEY"] = "808fd62c32edcd148deb71d05fdfe0b69d846e3e"
+    os.environ["WANDB_MODE"] = "offline"
     train()

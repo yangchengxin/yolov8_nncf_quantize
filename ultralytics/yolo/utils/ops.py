@@ -676,6 +676,38 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None, normalize=False
         coords[..., 1] /= img0_shape[0]  # height
     return coords
 
+def clip_segments(segments, shape):
+    """
+    It takes a list of line segments (x1,y1,x2,y2) and clips them to the image shape (height, width)
+
+    Args:
+      segments (list): a list of segments, each segment is a list of points, each point is a list of x,y
+    coordinates
+      shape (tuple): the shape of the image
+    """
+    if isinstance(segments, torch.Tensor):  # faster individually
+        segments[:, 0].clamp_(0, shape[1])  # x
+        segments[:, 1].clamp_(0, shape[0])  # y
+    else:  # np.array (faster grouped)
+        segments[:, 0] = segments[:, 0].clip(0, shape[1])  # x
+        segments[:, 1] = segments[:, 1].clip(0, shape[0])  # y
+
+def scale_segments(img1_shape, segments, img0_shape, ratio_pad=None, normalize=False):
+    if ratio_pad is None:  # calculate from img0_shape
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+
+    segments[:, 0] -= pad[0]  # x padding
+    segments[:, 1] -= pad[1]  # y padding
+    segments /= gain
+    clip_segments(segments, img0_shape)
+    if normalize:
+        segments[:, 0] /= img0_shape[1]  # width
+        segments[:, 1] /= img0_shape[0]  # height
+    return segments
 
 def masks2segments(masks, strategy='largest'):
     """
